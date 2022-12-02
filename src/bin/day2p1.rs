@@ -6,10 +6,7 @@ fn map_value(thing: &str) -> i32 {
         "X" => 1,
         "Y" => 2,
         "Z" => 3,
-        "A" => 1,
-        "B" => 2,
-        "C" => 3,
-        _ => 10,
+        _ => panic!("asdfasdf"),
     }
 }
 
