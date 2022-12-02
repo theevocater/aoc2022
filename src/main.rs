@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
         .send()?;
 
     let resp = resp.text().unwrap();
-    let input_file = format!("input_day{}.txt", day);
+    let input_file = format!("input/input_day{}.txt", day);
     fs::write(input_file, resp)?;
     Ok(())
 }
