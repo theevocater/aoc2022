@@ -1,3 +1,4 @@
+use anyhow::Context;
 use reqwest;
 use reqwest::header;
 use std::env;
@@ -6,10 +7,8 @@ use std::path::Path;
 
 fn read_token() -> anyhow::Result<String> {
     let path = Path::new("TOKEN");
-    let token = match fs::read_to_string(&path) {
-        Err(why) => panic!("Unable to read {}: {}", path.display(), why),
-        Ok(file) => file,
-    };
+    let token =
+        fs::read_to_string(&path).with_context(|| format!("Unable to read {}", path.display()))?;
     Ok(token.trim().to_string())
 }
 
