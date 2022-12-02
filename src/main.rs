@@ -1,17 +1,16 @@
 use reqwest;
 use reqwest::header;
 use std::env;
-use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-fn read_token() -> String {
+fn read_token() -> anyhow::Result<String> {
     let path = Path::new("TOKEN");
     let token = match fs::read_to_string(&path) {
         Err(why) => panic!("Unable to read {}: {}", path.display(), why),
         Ok(file) => file,
     };
-    token.trim().to_string()
+    Ok(token.trim().to_string())
 }
 
 fn create_day_mains(day: u32) -> std::io::Result<()> {
@@ -21,7 +20,7 @@ fn create_day_mains(day: u32) -> std::io::Result<()> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         panic!("Please pass a day")
@@ -35,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // download todays input.txt to data/dayN.txt
     let token = read_token();
     let url = format!("https://adventofcode.com/2022/day/{}/input", day);
-    let cookie = format!("session={}", token);
+    let cookie = format!("session={}", token?);
     let client = reqwest::blocking::Client::new();
     let resp = client
         .get(&url)
