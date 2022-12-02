@@ -1,23 +1,15 @@
+use anyhow::Context;
 use reqwest;
+use reqwest::header;
 use std::env;
 use std::fs;
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::Path;
 
-fn read_token() -> String {
+fn read_token() -> anyhow::Result<String> {
     let path = Path::new("TOKEN");
-    let mut file = match File::open(&path) {
-        Err(why) => panic!("Unable to read {}: {}", path.display(), why),
-        Ok(file) => file,
-    };
-
-    let mut token = String::new();
-    match file.read_to_string(&mut token) {
-        Err(why) => panic!("unable to read {}: {}", path.display(), why),
-        Ok(_) => (),
-    };
-    token
+    let token =
+        fs::read_to_string(&path).with_context(|| format!("Unable to read {}", path.display()))?;
+    Ok(token.trim().to_string())
 }
 
 fn create_day_mains(day: u32) -> std::io::Result<()> {
@@ -27,30 +19,32 @@ fn create_day_mains(day: u32) -> std::io::Result<()> {
     Ok(())
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         panic!("Please pass a day")
     }
 
-    let day: u32 = match args[1].parse() {
-        Err(why) => panic!("unable to parse {}", why),
-        Ok(day) => day,
-    };
+    let day: u32 = args[1].parse()?;
+
     // Make dayNp1 and dayNp2
-    match create_day_mains(day) {
-        Err(why) => panic!("Unable to copy file: {}", why),
-        Ok(_) => (),
-    };
+    create_day_mains(day)?;
+
     // download todays input.txt to data/dayN.txt
     let token = read_token();
-    print!("Token: {}", token);
-    let url = format!("https://adventofcode.com/2021/day/{}/input", day);
-    let cookie = format!("session={}", token);
+    let url = format!("https://adventofcode.com/2022/day/{}/input", day);
+    let cookie = format!("session={}", token?);
     let client = reqwest::blocking::Client::new();
-    let resp = match client.get(&url).header("Cookie", cookie).send() {
-        Err(why) => panic!("unable to talk to {}: {}", url, why),
-        Ok(resp) => resp,
-    };
-    print!("{}", resp.text().unwrap());
+    let resp = client
+        .get(&url)
+        .header(
+            header::HeaderName::from_static("cookie"),
+            header::HeaderValue::from_str(&cookie).expect("failed to parse header"),
+        )
+        .send()?;
+
+    let resp = resp.text().unwrap();
+    let input_file = format!("input_day{}.txt", day);
+    fs::write(input_file, resp)?;
+    Ok(())
 }
