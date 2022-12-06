@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::fmt;
 use std::io;
 use std::io::BufRead;
@@ -18,23 +19,17 @@ impl fmt::Display for Move {
     }
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let inputs: Vec<String> = io::stdin().lock().lines().flatten().collect();
-    // If starts with [ [T] stacks each take up 4 chars and include trailing spaces subdivide the
-    // stacks by 4
-    //
-    // if line starts with space ignore
-    //
-    // if line starts with 'm' parse these into a matrix of a list of stacks, and the boxes in each
-    // stack, with the top at split the move lines on spaces, use 1,3,5 for amount,from,to then
-    // iterate over the moves and mutate the matrix then return the end of each sublist
-    let stacks = (inputs.first().unwrap().len() + 1) / 4;
-    println!("{}", stacks);
-    let mut stacks: Vec<Vec<char>> = vec![Vec::new(); stacks];
+    // number of stacks is line 1 len / 4 rounded up
+    let num_stacks = (inputs.first().context("failed to parse")?.len() + 1) / 4;
+    let mut stacks: Vec<Vec<char>> = vec![Vec::new(); num_stacks];
     let mut moves: Vec<Move> = Vec::new();
     inputs
         .iter()
         .for_each(|input| match input.trim().chars().nth(0) {
+            // If starts with [ [T] stacks each take up 4 chars and include trailing spaces subdivide the
+            // stacks by 4
             Some('[') => input
                 .chars()
                 .collect::<Vec<char>>()
@@ -45,6 +40,9 @@ fn main() {
                         stacks[index].insert(0, a[1])
                     }
                 }),
+            // if line starts with 'm' parse these into a matrix of a list of stacks, and the boxes in each
+            // stack, with the top at split the move lines on spaces, use 1,3,5 for amount,from,to then
+            // iterate over the moves and mutate the matrix then return the end of each sublist
             Some('m') => {
                 let split = input
                     .split(' ')
@@ -56,6 +54,7 @@ fn main() {
                     to: split[2] - 1,
                 });
             }
+            // if line starts with space or anything else ignore
             _ => println!("ignoring {}", input),
         });
     stacks.iter().for_each(|s| {
@@ -67,12 +66,13 @@ fn main() {
         println!("Performing {}", m);
         // ok what does move mean exactly, append n from f to t
         for _i in 0..m.amount {
-            let from = stacks[m.from].pop().unwrap();
+            let from = stacks[m.from].pop().context(format!("stack {} empty", m))?;
             stacks[m.to].push(from)
         }
     }
     stacks.iter().for_each(|s| {
         print!("{}", s[s.len() - 1]);
     });
-    println!("")
+    println!("");
+    Ok(())
 }

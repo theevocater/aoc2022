@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
         )
         .send()?;
 
-    let resp = resp.text().unwrap();
+    let resp = resp.text().context("failed to read response")?;
     let input_file = format!("input/input_day{}.txt", day);
     fs::write(input_file, resp)?;
     Ok(())
